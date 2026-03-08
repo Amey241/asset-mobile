@@ -37,6 +37,11 @@ const assetSchema = new mongoose.Schema(
       ref: "User",
       default: null,
     },
+    owner: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
   },
   { timestamps: true }
 );

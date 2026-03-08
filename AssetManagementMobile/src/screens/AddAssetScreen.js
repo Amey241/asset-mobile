@@ -77,7 +77,7 @@ const AddAssetScreen = ({ navigation }) => {
 
                     <Text variant="titleMedium" style={styles.sectionLabel}>Financial Details</Text>
                     <TextInput
-                        label="Purchase Price ($)"
+                        label="Purchase Price (₹)"
                         value={purchasePrice}
                         onChangeText={setPurchasePrice}
                         mode="outlined"

@@ -8,8 +8,12 @@ const theme = {
   ...MD3LightTheme,
   colors: {
     ...MD3LightTheme.colors,
-    primary: '#6200ee',
-    secondary: '#03dac6',
+    primary: '#0F172A', // Slate 900
+    secondary: '#3B82F6', // Blue 500
+    tertiary: '#10B981', // Emerald 500
+    background: '#F8FAFC', // Slate 50
+    surface: '#FFFFFF',
+    error: '#EF4444',
   },
 };
 

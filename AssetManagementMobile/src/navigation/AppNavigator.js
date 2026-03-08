@@ -28,21 +28,39 @@ const MainTabNavigator = () => (
             tabBarIcon: ({ color, size }) => {
                 let iconName;
                 if (route.name === 'Dashboard') iconName = 'view-dashboard';
-                else if (route.name === 'Invest') iconName = 'wallet-giftcard';
-                else if (route.name === 'Assets') iconName = 'package-variant-closed';
-                else if (route.name === 'Scan') iconName = 'qrcode-scan';
+                else if (route.name === 'Invest') iconName = 'chart-line-variant';
+                else if (route.name === 'Assets') iconName = 'archive';
                 else if (route.name === 'Profile') iconName = 'account-circle';
-                return <MaterialCommunityIcons name={iconName} size={size} color={color} />;
+                // Slightly larger icons for the borderless look
+                return <MaterialCommunityIcons name={iconName} size={28} color={color} />;
             },
-            tabBarActiveTintColor: '#6200ee',
-            tabBarInactiveTintColor: 'gray',
+            tabBarActiveTintColor: '#3B82F6', // Bright blue active
+            tabBarInactiveTintColor: '#94A3B8', // Muted slate inactive
             headerShown: false,
+            tabBarShowLabel: false, // Hide labels for minimal look
+            tabBarStyle: {
+                position: 'absolute',
+                bottom: 24,
+                left: 24,
+                right: 24,
+                elevation: 8,
+                backgroundColor: '#ffffff',
+                borderRadius: 24,
+                height: 70,
+                shadowColor: '#000',
+                shadowOffset: {
+                    width: 0,
+                    height: 4,
+                },
+                shadowOpacity: 0.1,
+                shadowRadius: 12,
+                borderTopWidth: 0,
+            },
         })}
     >
         <Tab.Screen name="Dashboard" component={DashboardScreen} />
         <Tab.Screen name="Invest" component={InvestmentScreen} />
         <Tab.Screen name="Assets" component={AssetsScreen} />
-        <Tab.Screen name="Scan" component={ScannerScreen} />
         <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
 );
@@ -67,6 +85,7 @@ const AppNavigator = () => {
                     <Stack.Screen name="AIAdvisor" component={AIAdvisorScreen} />
                     <Stack.Screen name="UserManagement" component={UserManagementScreen} />
                     <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+                    <Stack.Screen name="Scan" component={ScannerScreen} />
                 </>
             )}
         </Stack.Navigator>

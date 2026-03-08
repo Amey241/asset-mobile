@@ -6,8 +6,11 @@ import { PieChart } from 'react-native-chart-kit';
 import { AuthContext } from '../context/AuthContext';
 import StatCard from '../components/StatCard';
 import api from '../services/api';
+import { io } from 'socket.io-client';
 
-const DashboardScreen = () => {
+const SOCKET_URL = 'http://192.168.1.5:3000'; // Make sure this matches your backend Socket.io URL
+
+const DashboardScreen = ({ navigation }) => {
     const { user } = useContext(AuthContext);
     const [refreshing, setRefreshing] = useState(false);
     const [stats, setStats] = useState({
@@ -47,7 +50,7 @@ const DashboardScreen = () => {
             const catData = statsData.categoryData || {};
             const formattedChartData = Object.keys(catData).map((key, index) => ({
                 name: key,
-                population: catData[key],
+                population: Number(catData[key]) || 0,
                 color: colors[index % colors.length],
                 legendFontColor: '#757575',
                 legendFontSize: 12
@@ -62,6 +65,19 @@ const DashboardScreen = () => {
 
     useEffect(() => {
         fetchStats();
+
+        // Setup Socket.io connection for real-time updates
+        const socket = io(SOCKET_URL);
+
+        socket.on('portfolioUpdated', (data) => {
+            console.log('Real-time update received:', data);
+            fetchStats(); // Refresh data smoothly
+        });
+
+        // Cleanup on unmount
+        return () => {
+            socket.disconnect();
+        };
     }, []);
 
     const onRefresh = async () => {
@@ -74,54 +90,76 @@ const DashboardScreen = () => {
         <View style={styles.container}>
             <Appbar.Header style={styles.header}>
                 <Appbar.Content title="Dashboard" titleStyle={styles.headerTitle} />
+                <Appbar.Action icon="bell-ring-outline" color="#0F172A" onPress={() => { }} />
             </Appbar.Header>
 
             <ScrollView
                 contentContainerStyle={styles.scrollContent}
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#3B82F6" />}
+                showsVerticalScrollIndicator={false}
             >
-                <Surface style={styles.welcomeSurface} elevation={1}>
-                    <View style={styles.welcomeHeader}>
+                <Surface style={styles.heroBanner} elevation={4}>
+                    <View style={styles.heroTopRow}>
                         <View>
-                            <Text variant="headlineSmall" style={styles.welcomeText}>Welcome back,</Text>
-                            <Text variant="titleLarge" style={styles.userName}>{user?.name} 👋</Text>
+                            <Text variant="titleSmall" style={styles.heroGreeting}>Welcome back,</Text>
+                            <Text variant="titleLarge" style={styles.heroName}>{user?.name}</Text>
                         </View>
                         <Surface style={styles.riskBadge} elevation={0}>
                             <Text style={styles.riskText}>{user?.risk_profile?.toUpperCase() || 'MEDIUM'} RISK</Text>
                         </Surface>
                     </View>
 
-                    <View style={styles.budgetContainer}>
-                        <Text variant="labelLarge" style={styles.budgetLabel}>Monthly Savings</Text>
-                        <Text variant="displaySmall" style={styles.budgetAmount}>
-                            ${portfolio?.remaining_money?.toFixed(2) || '0.00'}
+                    <View style={styles.heroCenter}>
+                        <Text variant="bodyMedium" style={styles.netWorthLabel}>Net Portfolio Value</Text>
+                        <Text variant="displaySmall" style={styles.netWorthAmount}>
+                            ₹{totalValue.toLocaleString('en-IN')}
                         </Text>
+                        <Text variant="labelLarge" style={styles.monthlySavings}>
+                            + ₹{portfolio?.remaining_money?.toLocaleString('en-IN') || '0'} monthly reserve
+                        </Text>
+                    </View>
+
+                    <View style={styles.heroActions}>
                         <Button
-                            mode="text"
+                            mode="contained"
+                            buttonColor="#10B981"
+                            textColor="#fff"
                             icon="trending-up"
                             onPress={() => navigation.navigate('Invest')}
-                            compact
+                            style={styles.heroBtn}
+                            contentStyle={styles.heroBtnContent}
                         >
-                            Invest Wisely
+                            Invest
+                        </Button>
+                        <Button
+                            mode="contained"
+                            buttonColor="rgba(255,255,255,0.15)"
+                            textColor="#fff"
+                            icon="plus"
+                            onPress={() => navigation.navigate('Scan')}
+                            style={styles.heroBtn}
+                            contentStyle={styles.heroBtnContent}
+                        >
+                            Add Asset
                         </Button>
                     </View>
                 </Surface>
 
                 <View style={styles.statsGrid}>
                     <View style={styles.row}>
-                        <StatCard title="Total Assets" value={stats.total} icon="database" color="#1a237e" />
-                        <StatCard title="Available" value={stats.available} icon="check-circle" color="#4caf50" />
+                        <StatCard title="Total Assets" value={stats.total} icon="database" color="#0F172A" />
+                        <StatCard title="Available" value={stats.available} icon="check-circle" color="#10B981" />
                     </View>
                     <View style={styles.row}>
-                        <StatCard title="Assigned" value={stats.assigned} icon="account-check" color="#1976d2" />
-                        <StatCard title="Maintenance" value={stats.maintenance} icon="tools" color="#f44336" />
+                        <StatCard title="Assigned" value={stats.assigned} icon="account-check" color="#3B82F6" />
+                        <StatCard title="Maintenance" value={stats.maintenance} icon="tools" color="#EF4444" />
                     </View>
                 </View>
 
                 {stats.overdue > 0 && (
-                    <Surface style={styles.overdueSurface} elevation={2}>
+                    <Surface style={styles.overdueSurface} elevation={1}>
                         <View style={styles.overdueHeader}>
-                            <MaterialCommunityIcons name="alert-decagram" size={24} color="#f44336" />
+                            <MaterialCommunityIcons name="alert-circle" size={24} color="#EF4444" />
                             <Text variant="titleMedium" style={styles.overdueTitle}>Overdue Assets ({stats.overdue})</Text>
                         </View>
                         <Text variant="bodySmall" style={styles.overdueText}>
@@ -131,54 +169,62 @@ const DashboardScreen = () => {
                 )}
 
                 <Surface style={styles.chartSurface} elevation={1}>
-                    <Text variant="titleMedium" style={styles.chartTitle}>Portfolio Investment</Text>
-                    <View style={styles.totalValueContainer}>
-                        <Text variant="labelLarge" style={styles.totalValueLabel}>Total Portfolio Value</Text>
-                        <Text variant="headlineMedium" style={styles.totalValueText}>${totalValue.toLocaleString()}</Text>
-                    </View>
+                    <Text variant="titleMedium" style={styles.sectionTitle}>Asset Allocation</Text>
                     {chartData.length > 0 ? (
-                        <PieChart
-                            data={chartData}
-                            width={Dimensions.get('window').width - 64}
-                            height={200}
-                            chartConfig={{
-                                color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-                            }}
-                            accessor="population"
-                            backgroundColor="transparent"
-                            paddingLeft="15"
-                            absolute
-                        />
+                        <View style={styles.chartWrapper}>
+                            <PieChart
+                                data={chartData}
+                                width={Dimensions.get('window').width - 72}
+                                height={220}
+                                chartConfig={{
+                                    color: (opacity = 1) => `rgba(15, 23, 42, ${opacity})`,
+                                }}
+                                accessor="population"
+                                backgroundColor="transparent"
+                                paddingLeft="0"
+                                absolute
+                            />
+                        </View>
                     ) : (
-                        <Text style={styles.emptyChartText}>Add assets with value to see analysis</Text>
+                        <View style={styles.emptyChart}>
+                            <MaterialCommunityIcons name="chart-pie" size={48} color="#E2E8F0" />
+                            <Text style={styles.emptyChartText}>Add assets to view your allocation.</Text>
+                        </View>
                     )}
                 </Surface>
 
-                <Text variant="titleMedium" style={styles.sectionTitle}>Recent Activity</Text>
-                {recentActivity.length > 0 ? (
-                    recentActivity.slice(0, 5).map((item) => (
-                        <Surface key={item._id} style={styles.activityItem} elevation={1}>
-                            <View style={[styles.activityIcon, { backgroundColor: item.action === 'create' ? '#e8f5e9' : '#f3e5f5' }]}>
-                                <MaterialCommunityIcons
-                                    name={item.action === 'create' ? 'plus-circle' : 'update'}
-                                    size={24}
-                                    color={item.action === 'create' ? '#4caf50' : '#1a237e'}
-                                />
+                <View style={styles.timelineHeader}>
+                    <Text variant="titleMedium" style={styles.sectionTitle}>Recent Activity</Text>
+                    <Button mode="text" textColor="#3B82F6" compact>View All</Button>
+                </View>
+
+                <Surface style={styles.timelineContainer} elevation={1}>
+                    {recentActivity.length > 0 ? (
+                        recentActivity.slice(0, 5).map((item, index) => (
+                            <View key={item._id} style={styles.timelineItem}>
+                                <View style={styles.timelineLeft}>
+                                    <View style={[styles.timelineDot, { backgroundColor: item.action === 'create' ? '#10B981' : '#3B82F6' }]} />
+                                    {index !== recentActivity.slice(0, 5).length - 1 && <View style={styles.timelineLine} />}
+                                </View>
+                                <View style={styles.timelineContent}>
+                                    <View style={styles.timelineContentHeader}>
+                                        <Text variant="titleSmall" style={styles.timelineTitle} numberOfLines={1}>{item.asset?.name || 'Asset action'}</Text>
+                                        <Text variant="labelSmall" style={styles.timelineTime}>
+                                            {item.createdAt ? new Date(item.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'Today'}
+                                        </Text>
+                                    </View>
+                                    <Text variant="bodySmall" style={styles.timelineDesc} numberOfLines={2}>{item.message}</Text>
+                                </View>
                             </View>
-                            <View style={styles.activityInfo}>
-                                <Text variant="titleSmall" numberOfLines={1}>{item.asset?.name || 'Asset action'}</Text>
-                                <Text variant="bodySmall" numberOfLines={1}>{item.message}</Text>
-                            </View>
-                            <Text variant="labelSmall" style={styles.activityTime}>
-                                {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'Today'}
-                            </Text>
-                        </Surface>
-                    ))
-                ) : (
-                    <Surface style={styles.activityCard} elevation={1}>
-                        <Text variant="bodyMedium" style={styles.emptyActivity}>No recent activities to display.</Text>
-                    </Surface>
-                )}
+                        ))
+                    ) : (
+                        <View style={styles.emptyActivity}>
+                            <MaterialCommunityIcons name="history" size={32} color="#E2E8F0" />
+                            <Text variant="bodyMedium" style={styles.emptyActivityText}>No recent activities to display.</Text>
+                        </View>
+                    )}
+                </Surface>
+                <View style={{ height: 100 }} />
             </ScrollView>
         </View>
     );
@@ -187,141 +233,127 @@ const DashboardScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f4f7fa',
+        backgroundColor: '#F8FAFC',
     },
     header: {
-        backgroundColor: '#fff',
+        backgroundColor: '#F8FAFC',
+        elevation: 0,
     },
     headerTitle: {
         fontWeight: 'bold',
-        color: '#1a237e',
+        color: '#0F172A',
+        fontSize: 22,
     },
     scrollContent: {
-        padding: 16,
+        paddingHorizontal: 16,
+        paddingTop: 8,
     },
-    welcomeSurface: {
+    heroBanner: {
+        backgroundColor: '#0F172A',
+        borderRadius: 24,
         padding: 24,
-        borderRadius: 16,
-        backgroundColor: '#fff',
-        marginBottom: 20,
+        marginBottom: 24,
+        shadowColor: '#0F172A',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.2,
+        shadowRadius: 15,
     },
-    welcomeHeader: {
+    heroTopRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 16,
+    },
+    heroGreeting: {
+        color: '#94A3B8',
+    },
+    heroName: {
+        color: '#FFFFFF',
+        fontWeight: 'bold',
     },
     riskBadge: {
-        backgroundColor: '#e8f5e9',
+        backgroundColor: 'rgba(16, 185, 129, 0.2)',
         paddingHorizontal: 12,
-        paddingVertical: 4,
+        paddingVertical: 6,
         borderRadius: 20,
+        borderWidth: 1,
+        borderColor: 'rgba(16, 185, 129, 0.5)',
     },
     riskText: {
         fontSize: 10,
-        fontWeight: 'bold',
-        color: '#4caf50',
+        fontWeight: '800',
+        color: '#10B981',
+        letterSpacing: 0.5,
     },
-    budgetContainer: {
-        alignItems: 'center',
-        backgroundColor: '#f8f9fa',
-        padding: 16,
-        borderRadius: 12,
+    heroCenter: {
+        marginTop: 24,
+        marginBottom: 24,
     },
-    budgetLabel: {
-        color: '#757575',
+    netWorthLabel: {
+        color: '#94A3B8',
+        marginBottom: 4,
     },
-    budgetAmount: {
-        fontWeight: 'bold',
-        color: '#1a237e',
-        marginVertical: 4,
+    netWorthAmount: {
+        color: '#FFFFFF',
+        fontWeight: '900',
     },
-    welcomeText: {
-        color: '#757575',
+    monthlySavings: {
+        color: '#10B981',
+        marginTop: 4,
     },
-    userName: {
-        fontWeight: 'bold',
-        color: '#212121',
+    heroActions: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    heroBtn: {
+        flex: 1,
+        borderRadius: 16,
+    },
+    heroBtnContent: {
+        paddingVertical: 4,
     },
     statsGrid: {
-        marginBottom: 20,
+        marginBottom: 24,
+        gap: 12,
     },
     row: {
         flexDirection: 'row',
+        gap: 12,
     },
     sectionTitle: {
         fontWeight: 'bold',
-        marginBottom: 12,
-        marginLeft: 4,
-        color: '#1a237e',
-    },
-    activityCard: {
-        padding: 24,
-        borderRadius: 16,
-        backgroundColor: '#fff',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    activityItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 16,
-        borderRadius: 12,
-        backgroundColor: '#fff',
-        marginBottom: 8,
-    },
-    activityIcon: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: '#f3e5f5',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 12,
-    },
-    activityInfo: {
-        flex: 1,
-    },
-    activityTime: {
-        color: '#9e9e9e',
-    },
-    emptyActivity: {
-        color: '#9e9e9e',
+        color: '#0F172A',
+        fontSize: 18,
     },
     chartSurface: {
         padding: 20,
-        borderRadius: 16,
-        backgroundColor: '#fff',
-        marginBottom: 20,
+        borderRadius: 24,
+        backgroundColor: '#FFFFFF',
+        marginBottom: 24,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
     },
-    chartTitle: {
-        fontWeight: 'bold',
-        marginBottom: 16,
-        color: '#1a237e',
-    },
-    totalValueContainer: {
+    chartWrapper: {
         alignItems: 'center',
-        marginBottom: 8,
+        marginTop: 12,
     },
-    totalValueLabel: {
-        color: '#757575',
-    },
-    totalValueText: {
-        fontWeight: 'bold',
-        color: '#1a237e',
+    emptyChart: {
+        alignItems: 'center',
+        paddingVertical: 40,
     },
     emptyChartText: {
-        textAlign: 'center',
-        color: '#9e9e9e',
-        marginVertical: 40,
+        color: '#94A3B8',
+        marginTop: 8,
+        fontWeight: '500',
     },
     overdueSurface: {
-        backgroundColor: '#fff1f0',
+        backgroundColor: '#FEF2F2',
         padding: 16,
         borderRadius: 16,
-        marginBottom: 20,
+        marginBottom: 24,
         borderWidth: 1,
-        borderColor: '#ffa39e',
+        borderColor: '#FECACA',
     },
     overdueHeader: {
         flexDirection: 'row',
@@ -329,13 +361,78 @@ const styles = StyleSheet.create({
         marginBottom: 4,
     },
     overdueTitle: {
-        color: '#cf1322',
+        color: '#B91C1C',
         fontWeight: 'bold',
         marginLeft: 8,
     },
     overdueText: {
-        color: '#595959',
+        color: '#7F1D1D',
         marginLeft: 32,
+    },
+    timelineHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    timelineContainer: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 24,
+        padding: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+    },
+    timelineItem: {
+        flexDirection: 'row',
+    },
+    timelineLeft: {
+        alignItems: 'center',
+        marginRight: 16,
+        width: 12,
+    },
+    timelineDot: {
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        marginTop: 6,
+    },
+    timelineLine: {
+        width: 2,
+        flex: 1,
+        backgroundColor: '#F1F5F9',
+        marginVertical: 4,
+    },
+    timelineContent: {
+        flex: 1,
+        paddingBottom: 20,
+    },
+    timelineContentHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: 4,
+    },
+    timelineTitle: {
+        fontWeight: 'bold',
+        color: '#0F172A',
+        flex: 1,
+        marginRight: 8,
+    },
+    timelineTime: {
+        color: '#94A3B8',
+    },
+    timelineDesc: {
+        color: '#64748B',
+    },
+    emptyActivity: {
+        alignItems: 'center',
+        paddingVertical: 24,
+    },
+    emptyActivityText: {
+        color: '#94A3B8',
+        marginTop: 8,
     },
 });
 

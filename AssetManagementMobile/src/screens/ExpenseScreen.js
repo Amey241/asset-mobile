@@ -67,7 +67,7 @@ const ExpenseScreen = ({ navigation }) => {
                             mode="flat"
                             style={styles.amountInput}
                             contentStyle={styles.amountInputContent}
-                            left={<TextInput.Affix text="$" />}
+                            left={<TextInput.Affix text="₹" />}
                         />
                     </View>
 

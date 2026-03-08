@@ -3,11 +3,76 @@ import AssetLog from "../models/assetLog.model.js";
 
 // @desc    Fetch all assets
 // @route   GET /api/assets
-// @access  Public (for simplicity)
+// @access  Private
 export const getAssets = async (req, res) => {
     try {
-        const assets = await Asset.find({}).populate("assignedTo", "name email");
+        const assets = await Asset.find({ owner: req.user._id }).populate("assignedTo", "name email");
         res.json(assets);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Get single asset
+// @route   GET /api/assets/:id
+// @access  Private
+export const getAssetById = async (req, res) => {
+    try {
+        const asset = await Asset.findById(req.params.id).populate("assignedTo", "name email");
+        if (asset) {
+            res.json(asset);
+        } else {
+            res.status(404).json({ message: "Asset not found" });
+        }
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Get asset history
+// @route   GET /api/assets/:id/history
+// @access  Private
+export const getAssetHistory = async (req, res) => {
+    try {
+        const history = await AssetLog.find({ asset: req.params.id })
+            .sort({ createdAt: -1 })
+            .populate("user", "name");
+        res.json(history);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Get dashboard stats
+// @route   GET /api/assets/stats
+// @access  Private
+export const getStats = async (req, res) => {
+    try {
+        const assets = await Asset.find({ owner: req.user._id });
+
+        const total = assets.length;
+        const available = assets.filter(a => a.status === 'Available' || a.status === 'available').length;
+        const assigned = assets.filter(a => a.status === 'Assigned' || a.status === 'assigned').length;
+        const maintenance = assets.filter(a => a.status === 'Maintenance' || a.status === 'maintenance').length;
+        const overdue = assets.filter(a => a.status === 'Overdue' || a.status === 'overdue').length;
+
+        const totalValue = assets.reduce((sum, a) => sum + (a.currentValue || a.purchasePrice || 0), 0);
+
+        const categoryData = {};
+        assets.forEach(a => {
+            const cat = a.category || 'Other';
+            categoryData[cat] = (categoryData[cat] || 0) + 1;
+        });
+
+        res.json({
+            total,
+            available,
+            assigned,
+            maintenance,
+            overdue,
+            totalValue,
+            categoryData
+        });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -34,6 +99,7 @@ export const createAsset = async (req, res) => {
             purchasePrice: purchasePrice || 0,
             currentValue: purchasePrice || 0,
             purchaseDate,
+            owner: req.user._id,
         });
 
         const createdAsset = await asset.save();
@@ -57,7 +123,7 @@ export const createAsset = async (req, res) => {
 // @access  Public (or protected, depending on requirements)
 export const getRecentActivity = async (req, res) => {
     try {
-        const activities = await AssetLog.find({})
+        const activities = await AssetLog.find({ user: req.user._id })
             .sort({ createdAt: -1 })
             .limit(10)
             .populate("asset", "name assetCode")
@@ -121,7 +187,15 @@ export const deleteAsset = async (req, res) => {
     try {
         const asset = await Asset.findById(req.params.id);
         if (asset) {
+            // Ensure the user owns the asset before deleting
+            if (asset.owner.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+                return res.status(403).json({ message: "Not authorized to delete this asset" });
+            }
+
             await Asset.findByIdAndDelete(req.params.id);
+            // Delete associated logs
+            await AssetLog.deleteMany({ asset: req.params.id });
+
             res.json({ message: "Asset removed" });
         } else {
             res.status(404).json({ message: "Asset not found" });

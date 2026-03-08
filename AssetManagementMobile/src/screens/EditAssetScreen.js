@@ -13,6 +13,7 @@ const EditAssetScreen = ({ route, navigation }) => {
     const [condition, setCondition] = useState('good');
     const [status, setStatus] = useState('available');
     const [purchasePrice, setPurchasePrice] = useState('');
+    const [currentValue, setCurrentValue] = useState('');
     const [purchaseDate, setPurchaseDate] = useState('');
     const [dueDate, setDueDate] = useState('');
     const [loading, setLoading] = useState(true);
@@ -31,6 +32,7 @@ const EditAssetScreen = ({ route, navigation }) => {
                     setCondition(asset.conditionStatus);
                     setStatus(asset.status);
                     setPurchasePrice(asset.purchasePrice?.toString() || '0');
+                    setCurrentValue(asset.currentValue?.toString() || '0');
                     setPurchaseDate(asset.purchaseDate ? new Date(asset.purchaseDate).toISOString().split('T')[0] : '');
                     setDueDate(asset.dueDate ? new Date(asset.dueDate).toISOString().split('T')[0] : '');
                 }
@@ -59,7 +61,8 @@ const EditAssetScreen = ({ route, navigation }) => {
                 description,
                 conditionStatus: condition,
                 status: status,
-                purchasePrice: parseFloat(purchasePrice) || 0,
+                purchasePrice: purchasePrice ? Number(purchasePrice.replace(/[^0-9.-]+/g, "")) : 0,
+                currentValue: currentValue ? Number(currentValue.replace(/[^0-9.-]+/g, "")) : 0,
                 purchaseDate: purchaseDate,
                 dueDate: dueDate || null
             });
@@ -109,9 +112,17 @@ const EditAssetScreen = ({ route, navigation }) => {
 
                     <Text variant="titleMedium" style={styles.sectionLabel}>Financial Details</Text>
                     <TextInput
-                        label="Purchase Price ($)"
+                        label="Purchase Price (₹)"
                         value={purchasePrice}
                         onChangeText={setPurchasePrice}
+                        mode="outlined"
+                        keyboardType="numeric"
+                        style={styles.input}
+                    />
+                    <TextInput
+                        label="Current Value (₹)"
+                        value={currentValue}
+                        onChangeText={setCurrentValue}
                         mode="outlined"
                         keyboardType="numeric"
                         style={styles.input}

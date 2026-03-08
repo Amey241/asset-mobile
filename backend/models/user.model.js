@@ -20,6 +20,15 @@ const userSchema = new mongoose.Schema(
             enum: ["admin", "staff"],
             default: "staff",
         },
+        monthly_income: {
+            type: Number,
+            default: 0,
+        },
+        risk_profile: {
+            type: String,
+            enum: ["low", "medium", "high"],
+            default: "medium",
+        },
     },
     { timestamps: true }
 );

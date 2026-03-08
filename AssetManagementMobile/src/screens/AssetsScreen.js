@@ -1,42 +1,32 @@
-import React, { useState, useCallback } from 'react';
-import { StyleSheet, View, FlatList, RefreshControl, Animated } from 'react-native';
+import React, { useState, useCallback, useMemo } from 'react';
+import { StyleSheet, View, FlatList, RefreshControl, TouchableOpacity, Animated } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Appbar, Searchbar, FAB, Text, Surface } from 'react-native-paper';
-import { LinearGradient } from 'expo-linear-gradient';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AssetCard from '../components/AssetCard';
 import LoadingSpinner from '../components/LoadingSpinner';
 import api from '../services/api';
 
+const FILTERS = ['All', 'Available', 'Assigned', 'Maintenance'];
+
 const AssetsScreen = ({ navigation }) => {
     const [assets, setAssets] = useState([]);
-    const [filteredAssets, setFilteredAssets] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
+    const [activeFilter, setActiveFilter] = useState('All');
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [scrollY] = useState(new Animated.Value(0));
 
     const fetchAssets = useCallback(async (showLoading = true) => {
         if (showLoading) setLoading(true);
         try {
             const response = await api.get('/assets');
             setAssets(response.data);
-
-            const query = searchQuery.toLowerCase();
-            if (query) {
-                const filtered = response.data.filter(asset =>
-                    asset.name.toLowerCase().includes(query) ||
-                    asset.assetCode.toLowerCase().includes(query)
-                );
-                setFilteredAssets(filtered);
-            } else {
-                setFilteredAssets(response.data);
-            }
         } catch (error) {
             console.error('Failed to fetch assets', error);
         } finally {
             if (showLoading) setLoading(false);
         }
-    }, [searchQuery]);
+    }, []);
 
     useFocusEffect(
         React.useCallback(() => {
@@ -50,48 +40,71 @@ const AssetsScreen = ({ navigation }) => {
         setRefreshing(false);
     };
 
-    const handleSearch = (query) => {
-        setSearchQuery(query);
-        const lowerQuery = query.toLowerCase();
-        const filtered = assets.filter(asset =>
-            asset.name.toLowerCase().includes(lowerQuery) ||
-            asset.assetCode.toLowerCase().includes(lowerQuery)
-        );
-        setFilteredAssets(filtered);
-    };
+    const displayAssets = useMemo(() => {
+        let filtered = assets;
+        if (activeFilter !== 'All') {
+            filtered = filtered.filter(a => a.status.toLowerCase() === activeFilter.toLowerCase());
+        }
+        if (searchQuery) {
+            const lowerQuery = searchQuery.toLowerCase();
+            filtered = filtered.filter(a =>
+                a.name.toLowerCase().includes(lowerQuery) ||
+                a.assetCode.toLowerCase().includes(lowerQuery)
+            );
+        }
+        return filtered;
+    }, [assets, activeFilter, searchQuery]);
 
     if (loading) return <LoadingSpinner />;
 
     return (
         <View style={styles.container}>
-            <LinearGradient
-                colors={['#1a237e', '#3949ab']}
-                style={styles.headerGradient}
-            >
-                <Appbar.Header style={styles.header}>
-                    <Appbar.Content
-                        title="Inventory"
-                        titleStyle={styles.headerTitle}
-                        subtitle={`${filteredAssets.length} Active Items`}
-                        subtitleStyle={styles.headerSubtitle}
-                    />
-                    <Appbar.Action icon="magnify" color="#fff" onPress={() => { }} />
-                </Appbar.Header>
-
-                <View style={styles.searchContainer}>
-                    <Searchbar
-                        placeholder="Scan or Search Assets..."
-                        onChangeText={handleSearch}
-                        value={searchQuery}
-                        style={styles.searchBar}
-                        inputStyle={styles.searchInput}
-                        iconColor="#1a237e"
-                    />
+            <Appbar.Header style={styles.header}>
+                <View>
+                    <Text style={styles.headerTitle}>Inventory</Text>
+                    <Text style={styles.headerSubtitle}>{displayAssets.length} Items</Text>
                 </View>
-            </LinearGradient>
+                <Appbar.Action icon="barcode-scan" color="#0F172A" onPress={() => navigation.navigate('Scan')} />
+            </Appbar.Header>
+
+            <View style={styles.searchContainer}>
+                <Searchbar
+                    placeholder="Search by name or serial..."
+                    onChangeText={setSearchQuery}
+                    value={searchQuery}
+                    style={styles.searchBar}
+                    inputStyle={styles.searchInput}
+                    iconColor="#94A3B8"
+                    placeholderTextColor="#94A3B8"
+                    elevation={0}
+                />
+            </View>
+
+            <View style={styles.filterContainer}>
+                <FlatList
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    data={FILTERS}
+                    keyExtractor={(item) => item}
+                    contentContainerStyle={styles.filterList}
+                    renderItem={({ item }) => {
+                        const isActive = activeFilter === item;
+                        return (
+                            <TouchableOpacity
+                                style={[styles.filterChip, isActive && styles.filterChipActive]}
+                                onPress={() => setActiveFilter(item)}
+                            >
+                                <Text style={[styles.filterText, isActive && styles.filterTextActive]}>
+                                    {item}
+                                </Text>
+                            </TouchableOpacity>
+                        );
+                    }}
+                />
+            </View>
 
             <FlatList
-                data={filteredAssets}
+                data={displayAssets}
                 keyExtractor={item => item._id}
                 renderItem={({ item }) => (
                     <AssetCard
@@ -100,30 +113,31 @@ const AssetsScreen = ({ navigation }) => {
                     />
                 )}
                 contentContainerStyle={styles.listContent}
+                showsVerticalScrollIndicator={false}
                 refreshControl={
                     <RefreshControl
                         refreshing={refreshing}
                         onRefresh={onRefresh}
-                        colors={['#1a237e']}
+                        tintColor="#3B82F6"
                     />
                 }
                 ListEmptyComponent={
                     <View style={styles.emptyContainer}>
-                        <Surface style={styles.emptyIconCircle} elevation={1}>
-                            <FAB icon="package-variant" style={styles.emptyIcon} disabled />
-                        </Surface>
+                        <View style={styles.emptyIconCircle}>
+                            <MaterialCommunityIcons name="package-variant" size={48} color="#CBD5E1" />
+                        </View>
                         <Text variant="titleMedium" style={styles.emptyTitle}>No Assets Found</Text>
-                        <Text variant="bodySmall" style={styles.emptySubtitle}>Try adjusting your filters or add a new asset below.</Text>
+                        <Text variant="bodySmall" style={styles.emptySubtitle}>Try adjusting your filters or add a new asset.</Text>
                     </View>
                 }
             />
 
             <FAB
                 icon="plus"
-                label="New Asset"
                 style={styles.fab}
                 onPress={() => navigation.navigate('AddAsset')}
-                color="#fff"
+                color="#FFFFFF"
+                customSize={56}
             />
         </View>
     );
@@ -132,77 +146,106 @@ const AssetsScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f4f7fa',
-    },
-    headerGradient: {
-        paddingBottom: 20,
-        borderBottomLeftRadius: 32,
-        borderBottomRightRadius: 32,
-        elevation: 8,
+        backgroundColor: '#F8FAFC',
     },
     header: {
-        backgroundColor: 'transparent',
+        backgroundColor: '#F8FAFC',
         elevation: 0,
+        justifyContent: 'space-between',
+        paddingHorizontal: 16,
     },
     headerTitle: {
         fontWeight: '900',
-        color: '#fff',
-        fontSize: 24,
+        color: '#0F172A',
+        fontSize: 28,
     },
     headerSubtitle: {
-        color: 'rgba(255, 255, 255, 0.8)',
-        fontSize: 12,
+        color: '#64748B',
+        fontSize: 14,
+        marginTop: 2,
     },
     searchContainer: {
-        paddingHorizontal: 20,
-        marginTop: 10,
+        paddingHorizontal: 16,
+        paddingTop: 8,
+        paddingBottom: 16,
     },
     searchBar: {
         borderRadius: 16,
-        backgroundColor: '#fff',
-        height: 50,
+        backgroundColor: '#FFFFFF',
+        height: 52,
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
     },
     searchInput: {
-        fontSize: 14,
+        fontSize: 15,
+        color: '#0F172A',
+    },
+    filterContainer: {
+        marginBottom: 16,
+    },
+    filterList: {
+        paddingHorizontal: 16,
+        gap: 8,
+    },
+    filterChip: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20,
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+    },
+    filterChipActive: {
+        backgroundColor: '#0F172A',
+        borderColor: '#0F172A',
+    },
+    filterText: {
+        color: '#64748B',
+        fontWeight: '600',
+    },
+    filterTextActive: {
+        color: '#FFFFFF',
     },
     listContent: {
         paddingHorizontal: 16,
-        paddingTop: 16,
         paddingBottom: 100,
     },
     fab: {
         position: 'absolute',
-        margin: 20,
+        margin: 24,
         right: 0,
-        bottom: 0,
-        backgroundColor: '#1a237e',
-        borderRadius: 28,
-        elevation: 6,
+        bottom: 70, // Above floating tab bar
+        backgroundColor: '#3B82F6',
+        borderRadius: 16,
+        elevation: 4,
+        shadowColor: '#3B82F6',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
     },
     emptyContainer: {
         alignItems: 'center',
-        marginTop: 80,
+        marginTop: 60,
     },
     emptyIconCircle: {
         width: 100,
         height: 100,
         borderRadius: 50,
-        backgroundColor: '#fff',
+        backgroundColor: '#FFFFFF',
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 20,
-    },
-    emptyIcon: {
-        backgroundColor: 'transparent',
+        borderWidth: 1,
+        borderColor: '#F1F5F9',
     },
     emptyTitle: {
-        color: '#1a237e',
+        color: '#0F172A',
         fontWeight: 'bold',
+        fontSize: 18,
     },
     emptySubtitle: {
-        color: '#757575',
+        color: '#64748B',
         textAlign: 'center',
-        paddingHorizontal: 40,
         marginTop: 8,
     },
 });

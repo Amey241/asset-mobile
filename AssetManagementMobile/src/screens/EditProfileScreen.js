@@ -59,7 +59,7 @@ const EditProfileScreen = ({ navigation }) => {
 
                     <Text variant="titleMedium" style={styles.sectionLabel}>Financial Settings</Text>
                     <TextInput
-                        label="Monthly Income ($)"
+                        label="Monthly Income (₹)"
                         value={income}
                         onChangeText={setIncome}
                         mode="outlined"
