@@ -1,5 +1,5 @@
 import express from "express";
-import { getPortfolio, getRecommendations, invest, getReport } from "../controllers/finance.controller.js";
+import { getPortfolio, getRecommendations, invest, getReport, logExpense } from "../controllers/finance.controller.js";
 import { protect } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
