@@ -36,12 +36,14 @@ import authRoutes from "./routes/auth.route.js";
 import assetRoutes from "./routes/asset.route.js";
 import financeRoutes from "./routes/finance.route.js";
 import paymentRoutes from "./routes/payment.route.js";
+import tradingRoutes from "./routes/trading.route.js";
 
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/assets", assetRoutes);
 app.use("/api/finance", financeRoutes);
 app.use("/api/payment", paymentRoutes);
+app.use("/api/trading", tradingRoutes);
 
 app.get("/", (req, res) => {
     res.send("API is running...");

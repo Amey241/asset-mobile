@@ -6,6 +6,7 @@ const router = express.Router();
 
 router.get("/portfolio", protect, getPortfolio);
 router.get("/recommendations", protect, getRecommendations);
+router.post("/expenses", protect, logExpense);
 router.post("/invest", protect, invest);
 router.get("/report", protect, getReport);
 

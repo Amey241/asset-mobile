@@ -7,7 +7,21 @@ import AssetLog from "../models/assetLog.model.js";
 export const getAssets = async (req, res) => {
     try {
         const assets = await Asset.find({ owner: req.user._id }).populate("assignedTo", "name email");
-        res.json(assets);
+        
+        // Calculate dynamic depreciation for each asset
+        const processedAssets = assets.map(asset => {
+            const assetObj = asset.toObject();
+            if (assetObj.purchasePrice && assetObj.purchaseDate) {
+                const purchaseDate = new Date(assetObj.purchaseDate);
+                const yearsOld = (new Date() - purchaseDate) / (1000 * 60 * 60 * 24 * 365.25);
+                const rate = assetObj.category?.toUpperCase() === 'IT' ? 0.20 : 0.10;
+                const currentVal = assetObj.purchasePrice * (1 - (rate * Math.max(0, yearsOld)));
+                assetObj.currentValue = Math.max(0, Math.round(currentVal * 100) / 100);
+            }
+            return assetObj;
+        });
+
+        res.json(processedAssets);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -51,12 +65,26 @@ export const getStats = async (req, res) => {
         const assets = await Asset.find({ owner: req.user._id });
 
         const total = assets.length;
-        const available = assets.filter(a => a.status === 'Available' || a.status === 'available').length;
-        const assigned = assets.filter(a => a.status === 'Assigned' || a.status === 'assigned').length;
-        const maintenance = assets.filter(a => a.status === 'Maintenance' || a.status === 'maintenance').length;
-        const overdue = assets.filter(a => a.status === 'Overdue' || a.status === 'overdue').length;
+        const available = assets.filter(a => a.status.toLowerCase() === 'available').length;
+        const assigned = assets.filter(a => a.status.toLowerCase() === 'assigned').length;
+        const maintenance = assets.filter(a => a.status.toLowerCase() === 'maintenance').length;
+        
+        // Overdue: status is assigned and there's a hypothetical due date logic
+        // For simplicity, we use the model's status if set to overdue, 
+        // OR if it's assigned and has a past due date (if we added one)
+        const overdue = assets.filter(a => a.status.toLowerCase() === 'overdue').length;
 
-        const totalValue = assets.reduce((sum, a) => sum + (a.currentValue || a.purchasePrice || 0), 0);
+        const totalValue = assets.reduce((sum, a) => {
+            // Apply depreciation for the total value calculation too
+            let val = a.purchasePrice || 0;
+            if (a.purchasePrice && a.purchaseDate) {
+                const yearsOld = (new Date() - new Date(a.purchaseDate)) / (1000 * 60 * 60 * 24 * 365.25);
+                const rate = a.category?.toUpperCase() === 'IT' ? 0.20 : 0.10;
+                val = a.purchasePrice * (1 - (rate * Math.max(0, yearsOld)));
+                val = Math.max(0, val);
+            }
+            return sum + val;
+        }, 0);
 
         const categoryData = {};
         assets.forEach(a => {
@@ -70,7 +98,7 @@ export const getStats = async (req, res) => {
             assigned,
             maintenance,
             overdue,
-            totalValue,
+            totalValue: Math.round(totalValue * 100) / 100,
             categoryData
         });
     } catch (error) {

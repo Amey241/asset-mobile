@@ -1,13 +1,12 @@
 # Asset Management System
 
-A comprehensive asset management solution featuring a mobile frontend, a Node.js management backend, and a FastAPI service for advanced processing.
+A comprehensive asset management solution featuring a mobile frontend and a unified Node.js backend.
 
 ## 🚀 Project Overview
 
-This project consists of three main components:
+This project consists of two main components:
 1.  **Frontend (Mobile)**: Built with Expo/React Native.
-2.  **Management Backend**: Node.js/Express service for core business logic and user management.
-3.  **Processing Service**: FastAPI service for specialized data processing and PDF generation.
+2.  **Unified Backend**: Node.js/Express service for core business logic, user management, and specialized data processing (PDFs/Trading).
 
 ---
 
@@ -20,16 +19,12 @@ This project consists of three main components:
 - **State Management**: React Context API
 - **API Client**: Axios
 
-### Management Backend (Node.js)
+### Unified Backend (Node.js)
 - **Runtime**: Node.js
 - **Framework**: Express.js
 - **Database**: MongoDB (via Mongoose)
 - **Authentication**: JWT, BcryptJS
-
-### Processing Service (FastAPI)
-- **Framework**: FastAPI (Python)
-- **Database**: MongoDB (Motor)
-- **Utilities**: PDF Generation
+- **Services**: PDF Generation (pdfkit), Market Data (CoinGecko API)
 
 ---
 
@@ -38,8 +33,7 @@ This project consists of three main components:
 ```text
 asset/
 ├── AssetManagementMobile/   # Expo Mobile Frontend
-├── backend/                # Node.js Express Backend
-├── fastapi-backend/        # Python FastAPI Processing Service
+├── backend/                # Unified Node.js Express Backend
 └── README.md              # Project Documentation
 ```
 
@@ -54,7 +48,7 @@ npm install
 npm start
 ```
 
-### 2. Management Backend (Node.js)
+### 2. Backend Setup (Node.js)
 ```bash
 cd backend
 npm install
@@ -62,24 +56,12 @@ npm install
 npm run dev
 ```
 
-### 3. Processing Service (FastAPI)
-```bash
-cd fastapi-backend
-# Set up virtual environment
-python -m venv venv
-# Windows:
-.\venv\Scripts\activate
-# Install requirements (ensure you have fastapi, uvicorn, motor, etc.)
-pip install fastapi uvicorn motor pydantic
-# Run the server
-uvicorn main:app --reload
-```
-
 ---
 
 ## 📝 Features
 - **Asset Scanning**: Integrated QR/Barcode scanning for assets.
-- **Dashboard**: Real-time asset statistics and charts.
-- **Investment Tracking**: Manage and monitor asset investments.
+- **Dashboard**: Real-time asset statistics, depreciation tracking, and charts.
+- **Investment Tracking**: Manage and monitor asset investments with live market data.
+- **Wallet System**: Deposit funds and execute simulator trades.
 - **User Management**: Secure authentication and profile management.
-- **PDF Reports**: Automated generation of asset reports.
+- **Financial Reports**: Automated PDF report generation with AI insights.
