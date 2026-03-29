@@ -26,6 +26,10 @@ export const AuthProvider = ({ children }) => {
                             await AsyncStorage.setItem('user', JSON.stringify({ ...response.data, token: parsedUser.token }));
                         } catch (apiError) {
                             console.error('Failed to refresh user from backend', apiError);
+                            // Clear invalid token (e.g. from Python FastAPI switch)
+                            await AsyncStorage.removeItem('user');
+                            delete api.defaults.headers.common['Authorization'];
+                            setUser(null);
                         }
                     }
                 }

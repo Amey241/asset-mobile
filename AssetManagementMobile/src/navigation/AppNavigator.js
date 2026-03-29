@@ -18,6 +18,7 @@ import InvestmentScreen from '../screens/InvestmentScreen';
 import AIAdvisorScreen from '../screens/AIAdvisorScreen';
 import UserManagementScreen from '../screens/UserManagementScreen';
 import EditProfileScreen from '../screens/EditProfileScreen';
+import WalletScreen from '../screens/WalletScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -86,9 +87,11 @@ const AppNavigator = () => {
                     <Stack.Screen name="UserManagement" component={UserManagementScreen} />
                     <Stack.Screen name="EditProfile" component={EditProfileScreen} />
                     <Stack.Screen name="Scan" component={ScannerScreen} />
+                    <Stack.Screen name="Wallet" component={WalletScreen} />
                 </>
             )}
         </Stack.Navigator>
+
     );
 };
 

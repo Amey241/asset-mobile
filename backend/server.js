@@ -35,11 +35,13 @@ app.use((req, res, next) => {
 import authRoutes from "./routes/auth.route.js";
 import assetRoutes from "./routes/asset.route.js";
 import financeRoutes from "./routes/finance.route.js";
+import paymentRoutes from "./routes/payment.route.js";
 
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/assets", assetRoutes);
 app.use("/api/finance", financeRoutes);
+app.use("/api/payment", paymentRoutes);
 
 app.get("/", (req, res) => {
     res.send("API is running...");
@@ -135,6 +137,31 @@ setInterval(async () => {
         console.error("Failed to fetch live market data", error.message);
     }
 }, 15000); // Poll every 15 seconds to respect rate limits
+
+// Real-Time Weather API Integration (Open-Meteo)
+const fetchWeather = async () => {
+    try {
+        // Fetch weather for Mumbai (Lat: 19.0760, Long: 72.8777)
+        const response = await fetch('https://api.open-meteo.com/v1/forecast?latitude=19.0760&longitude=72.8777&current_weather=true');
+        const data = await response.json();
+
+        if (data.current_weather) {
+            io.emit("weatherUpdate", {
+                temp: data.current_weather.temperature,
+                condition: data.current_weather.weathercode,
+                wind: data.current_weather.windspeed,
+                city: "Mumbai"
+            });
+        }
+    } catch (error) {
+        console.error("Failed to fetch weather data", error.message);
+    }
+};
+
+// Fetch weather every 10 minutes
+setInterval(fetchWeather, 10 * 60 * 1000);
+// Initial fetch
+setTimeout(fetchWeather, 2000);
 
 const connectDB = async () => {
     try {

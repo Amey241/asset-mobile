@@ -14,6 +14,7 @@ class UserBase(BaseModel):
     role: str = "staff"
     risk_profile: str = "medium" # high, medium, low
     monthly_income: float = 0.0
+    wallet_balance: float = 0.0
 
 class UserCreate(UserBase):
     password: str
@@ -127,3 +128,29 @@ class DashboardStats(BaseModel):
     overdue: int = 0
     totalValue: float = 0.0
     categoryData: dict = {}
+
+# --- Transaction Ledger & Trading Schemas ---
+
+class TransactionCreate(BaseModel):
+    type: str # 'deposit', 'withdraw', 'buy', 'sell'
+    asset_class: str # 'fiat', 'crypto', 'stocks'
+    symbol: Optional[str] = None
+    amount: float
+    price_at_execution: Optional[float] = None
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+class TransactionResponse(TransactionCreate):
+    id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
+    user_id: str
+
+    model_config = {
+        "populate_by_name": True,
+        "arbitrary_types_allowed": True,
+    }
+
+class MarketOrder(BaseModel):
+    symbol: str # e.g., 'bitcoin', 'AAPL'
+    asset_class: str # 'crypto', 'stocks'
+    side: str # 'buy', 'sell'
+    amount_usd: float # Amount in USD/Fiat to buy/sell
+
