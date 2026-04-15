@@ -14,7 +14,15 @@ export const AuthProvider = ({ children }) => {
             try {
                 const savedUser = await AsyncStorage.getItem('user');
                 if (savedUser) {
-                    const parsedUser = JSON.parse(savedUser);
+                    let parsedUser;
+                    try {
+                        parsedUser = JSON.parse(savedUser);
+                    } catch (e) {
+                        console.error('Malformed user data in storage', e);
+                        await AsyncStorage.removeItem('user');
+                        return;
+                    }
+
                     setUser(parsedUser); // Temporary optimistic load
 
                     if (parsedUser.token) {
