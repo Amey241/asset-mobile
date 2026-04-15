@@ -1,11 +1,11 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// 192.168.1.6 is your local machine's IP address
-const API_URL = 'http://192.168.1.6:3000/api';
+// Real backend URL on Render
+const API_URL = 'https://asset-mobile-1.onrender.com/api';
 
 const api = axios.create({
-    baseURL: 'http://192.168.1.6:3000/api',
+    baseURL: 'https://asset-mobile-1.onrender.com/api',
     timeout: 10000,
     headers: {
         'Content-Type': 'application/json',

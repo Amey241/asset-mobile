@@ -8,7 +8,7 @@ import StatCard from '../components/StatCard';
 import api from '../services/api';
 import { io } from 'socket.io-client';
 
-const SOCKET_URL = 'http://192.168.1.6:3000'; // Make sure this matches your backend Socket.io URL
+const SOCKET_URL = 'https://asset-mobile-1.onrender.com'; // Your production Render URL
 
 const DashboardScreen = ({ navigation }) => {
     const { user } = useContext(AuthContext);
