@@ -1,11 +1,10 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Real backend URL on Render
-const API_URL = 'https://asset-mobile-1.onrender.com/api';
+const API_URL = 'http://localhost:3000/api';
 
 const api = axios.create({
-    baseURL: 'https://asset-mobile-1.onrender.com/api',
+    baseURL: API_URL,
     timeout: 10000,
     headers: {
         'Content-Type': 'application/json',

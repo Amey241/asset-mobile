@@ -6,7 +6,7 @@ import { LineChart } from 'react-native-chart-kit';
 import api from '../services/api';
 import { io } from 'socket.io-client';
 
-const SOCKET_URL = 'https://asset-mobile-1.onrender.com'; // Your production Render URL
+const SOCKET_URL = 'http://localhost:3000';
 
 const InvestmentScreen = ({ navigation }) => {
     const [portfolio, setPortfolio] = useState(null);

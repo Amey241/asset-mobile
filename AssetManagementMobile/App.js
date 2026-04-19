@@ -3,6 +3,11 @@ import { NavigationContainer } from '@react-navigation/native';
 import { Provider as PaperProvider, MD3LightTheme } from 'react-native-paper';
 import { AuthProvider } from './src/context/AuthContext';
 import AppNavigator from './src/navigation/AppNavigator';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { enableScreens } from 'react-native-screens';
+
+// Optimize memory and stability
+enableScreens();
 
 const theme = {
   ...MD3LightTheme,
@@ -19,12 +24,14 @@ const theme = {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <PaperProvider theme={theme}>
-        <NavigationContainer>
-          <AppNavigator />
-        </NavigationContainer>
-      </PaperProvider>
-    </AuthProvider>
+    <SafeAreaProvider>
+      <AuthProvider>
+        <PaperProvider theme={theme}>
+          <NavigationContainer>
+            <AppNavigator />
+          </NavigationContainer>
+        </PaperProvider>
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 }
